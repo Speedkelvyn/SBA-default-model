@@ -1,0 +1,7 @@
+spec,test_auc,strict_test_auc
+"loan size alone, monotone (smaller loan = riskier)",0.6395168227053434,0.6394748265461571
+"scorecard, all features",0.6224431913357146,0.614268033163585
+"scorecard, no state",0.6091694676628497,0.5958215473439105
+"scorecard, no state or sector",0.5991378045180576,0.5874992173647305
+"scorecard, loan size only (binned)",0.6247619176466683,0.6248253193996771
+"scorecard, 12 bins per number",0.631539908014325,0.6265036446473983

@@ -1,0 +1,3 @@
+model,test_auc,strict_test_auc
+scorecard + lender record,0.6192115038847427,0.6101018477421204
+boosted + lender record,0.6365735335516164,0.6337604653324089

@@ -1,0 +1,40 @@
+{
+ "loans_in_file": 1709611,
+ "statuses": {
+  "PIF": 1189078,
+  "EXEMPT": 298239,
+  "CHGOFF": 222294
+ },
+ "population": 1461966,
+ "train_loans": 570452,
+ "test_loans": 560588,
+ "strict_loans": 349782,
+ "train_rate": 0.15272100018932355,
+ "test_rate": 0.03727336296888267,
+ "strict_rate": 0.03759484478904003,
+ "placebo_auc_mean": 0.5061901150224838,
+ "placebo_auc_sd": 0.0015233030709675731,
+ "recal_shift_logodds": -1.576024808122926,
+ "strict_defaults": 13150,
+ "auc_size_only_strict": 0.6394748265461571,
+ "brier_constant_strict": 0.03618147243432802,
+ "boot_boosted_auc_ci": [
+  0.6471232635473423,
+  0.6564142092456381
+ ],
+ "boot_scorecard_auc_ci": [
+  0.6093818702880902,
+  0.6179779399644967
+ ],
+ "boot_gap_ci": [
+  0.033994478974211095,
+  0.04097474256429205
+ ],
+ "lgd_train": 0.7691119065846764,
+ "expected_loss_boosted_$m": 1753.7058049865536,
+ "actual_loss_$m": 1688.760153,
+ "approved_$m": 160079.981443,
+ "term_whole_years_defaulted": 0.08983177260296676,
+ "term_whole_years_other": 0.8353406550997765,
+ "seconds": 277
+}
