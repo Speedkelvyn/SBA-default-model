@@ -158,3 +158,57 @@ def test_calibration_bins_match_hand_values():
     p = np.array([0.05, 0.1, 0.15, 0.2, 0.6, 0.7, 0.8, 0.9])
     t = S.calibration(y, p, bins=2)
     assert t["predicted"].tolist() == pytest.approx([0.125, 0.75]) and t["actual"].tolist() == [0.25, 0.75]
+
+
+def _refit_frame(n_per_year=1200, years=range(2010, 2018)):
+    rng = np.random.default_rng(1)
+    rows = []
+    for fy in years:
+        for i in range(n_per_year):
+            size = float(rng.choice([30_000.0, 150_000.0, 600_000.0]))
+            bad = int(rng.random() < (0.08 if size < 100_000 else 0.02))
+            rows.append(
+                {
+                    "ApprovalFY": fy,
+                    "GrossApproval": size,
+                    "SBAGuaranteedApproval": 0.75 * size,
+                    "default": bad,
+                    "BankState": "TX" if i % 3 else "CA",
+                    "BorrState": "TX",
+                    "ProjectState": "TX",
+                    "InitialInterestRate": 6.0 + 2.0 * bad + rng.normal(0, 0.3),
+                    "FixedorVariableInterestInd": "V" if i % 2 else "F",
+                    "NaicsCode": "722511",
+                    "BusinessType": "CORPORATION",
+                    "BusinessAge": "Existing, 5 or more years",
+                    "ProcessingMethod": "7a General",
+                    "RevolverStatus": "N",
+                    "CollateralInd": "Y",
+                    "FranchiseCode": None,
+                    "JobsSupported": 3.0,
+                    "ApprovalDate": pd.Timestamp(f"{fy}-03-01"),
+                    "LocationID": "A",
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def test_features_refit_adds_place_and_pricing_and_no_outcomes():
+    d = _refit_frame()
+    x = S.features_refit(d)
+    for c in S.PLACE + S.PRICING:
+        assert c in x.columns
+    assert not set(S.LENDER) & set(x.columns)
+    assert not {"default", "TermInMonths", "LoanStatus", "GrossChargeOffAmount"} & set(x.columns)
+    assert x["out_of_state"].tolist()[:3] == [1.0, 0.0, 0.0] or set(x["out_of_state"].unique()) <= {0.0, 1.0}
+    assert S.features_refit(d, place=False, pricing=False).shape[1] == S.features_refit(d).shape[1] - 4
+
+
+def test_refit_forecast_trains_only_on_loans_old_enough_and_ranks():
+    d = _refit_frame()
+    x = S.features_refit(d)
+    out = S.refit_forecast(d, x, test_years=[2016, 2017], first=2010, lag=6)
+    assert set(out["vintage"]) == {2016, 2017}
+    assert (d.loc[out.index, "ApprovalFY"] == out["vintage"]).all()
+    # a 2016 loan is scored by a model fitted on FY2010 only; a 2017 loan on FY2010 and FY2011
+    assert S.auc(d.loc[out.index, "default"], out["pd"]) > 0.6  # the planted size and rate signal is found

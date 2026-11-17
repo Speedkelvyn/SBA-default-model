@@ -4,8 +4,27 @@ Kelvin Afful · built November 2026 · code and tables in this repository · dat
 
 ## 1. Decision
 
-**Use the model to rank new applications and send the riskiest fifth to enhanced review. Do not use its default
-probabilities, as printed, to price loans or set provisions, and do not decline on the score alone.**
+**Use the model to rank new applications and send the riskiest fifth to enhanced review, and refit it every year. Do not price
+loans or set provisions on its default probabilities, and do not decline on the score alone.**
+
+Two versions are reported. **Version 2 (yearly refit)** is the one to use: each year's model is trained only on loans approved at least six
+years earlier, whose five-year outcomes were already known. **Version 1 (frozen at 2009)** is one model trained on FY2001 to FY2009 and left alone; it is kept as a robustness check and for what it shows about regime change.
+
+- **It ranks, but modestly.** On 294,362 loans approved FY2016 to FY2021 (11,018 defaults), version 2 has an AUC of 0.692 (95% interval
+  0.688 to 0.696) and a KS of 0.283. The riskiest tenth of loans defaulted at 8.5% within five years and the safest tenth at 0.45%.
+- **Most of the signal is still loan size.** Ranking by size alone scores 0.643 on the same loans. The version 1 fields refit each year
+  score 0.662; adding the interest rate lifts that by about 0.025 and place fields (lender or project outside the borrower's state) by about 0.005, 0.027 to 0.033 in all.
+- **The level is close once the model is refit.** Mean predicted default rate is 3.2% against 3.7% actual, with no shift applied. The middle
+  deciles are too low (decile 6: 2.8% predicted, 3.9% actual) and the top is slightly high. The Brier score is 0.0355 against 0.0360 for quoting the base rate to everyone, so the probabilities carry little
+  beyond the ranking.
+- **In dollars** (FY2016 to FY2021 approvals, $139.7 billion): sending the riskiest 20% of applications by count to review covers 40% of the defaults and 23% of the
+  charged-off dollars while touching 5% of approved dollars. Only 26% of gross charge-off dollars ($372 million of $1,451 million) are the unguaranteed part, so a
+  lender's own exposure is about a quarter of the gross figure before recoveries, which the public file does not report.
+
+A field that leaked the outcome was found and removed (section 4). With it the boosted model scored 0.93, which is the
+number a careless build would have reported.
+
+### Version 1: one model frozen at 2009
 
 - **It ranks, but modestly.** On loans approved after the model was built, the boosted model has an AUC of 0.65
   (95% interval 0.647 to 0.656) and the logistic scorecard 0.61. The riskiest tenth of loans defaulted at 7.2% within five years and the safest
@@ -13,7 +32,7 @@ probabilities, as printed, to price loans or set provisions, and do not decline 
 - **Most of the signal is loan size.** Smaller loans default more. Ranking by size alone scores 0.639 on the same loans, so the
   boosted model adds 0.013 and the scorecard scores below size alone (0.614). Everything else in the public file (industry, state,
   lending program, business age, jobs) adds little once size is known.
-- **The probabilities are wrong in level.** The model learned from 2001 to 2009 approvals, when 15% of loans defaulted within
+- **The probabilities are wrong in level (version 1 only; a yearly refit fixes most of it, section 13).** The model learned from 2001 to 2009 approvals, when 15% of loans defaulted within
   five years (28% for 2007 approvals). Later loans defaulted at 3.7%. Raw model PDs average 13.4% against 3.7% actual. Shifting
   every PD by one constant (fitted on FY2010 to FY2014 outcomes) fixes the average (3.3% against 3.8% for FY2015 to FY2021)
   but not the individual estimates: the Brier score after the shift (0.0363) equals that of quoting the base rate to everyone (0.0362).
@@ -27,9 +46,6 @@ probabilities, as printed, to price loans or set provisions, and do not decline 
 | AUC, approvals FY2015 to FY2021 (13,150 defaults) | 0.614 | 0.652 | 0.639 |
 | KS, FY2015 to FY2021 | 0.172 | 0.231 | |
 | AUC on the training years | 0.716 | 0.774 | |
-
-A field that leaked the outcome was found and removed (section 4). With it the boosted model scored 0.93, which is the
-number a careless build would have reported.
 
 ## 2. Purpose and scope
 
@@ -54,10 +70,12 @@ Fields describing the outcome (status, charge-off amount and date, paid-in-full 
 features. One field looked innocent and was not: **`TermInMonths`**. In loans approved FY2010 to FY2016, 9% of loans that defaulted have a
 term in whole years (84, 120 and so on) against 84% of the others, and for defaulted loans the term tracks the months to
 charge-off. The SBA appears to overwrite the term when a loan is charged off. A boosted model using it scored AUC 0.93
-on later loans; without it, 0.65. The term is excluded, and so are interest rate and fixed/variable, which the SBA
-reports only from FY2009 on (a feature that is missing for the whole training window cannot be learned).
+on later loans; without it, 0.65. The term is excluded. Version 1 also leaves out the interest rate and fixed/variable flag, which the SBA
+reports only from FY2009 on (a feature that is missing for the whole training window cannot be learned); version 2 trains on FY2010 onward and includes them after the audit in section 13.
 
 ## 5. Method
+
+Sections 5 to 9 describe version 1 (one model frozen at 2009); version 2 is section 13.
 
 - **Features (11), all known at approval.** Loan amount (log), SBA-guaranteed share, jobs supported per $100,000, industry (two-digit NAICS), state,
   business type, business age (grouped), processing program (grouped), revolving line, collateral flag, franchise flag.
@@ -125,7 +143,7 @@ charged-off dollars, not most of them. The SBA guarantee (median 75% of the loan
 ## 10. Tested and rejected, and choices made after seeing results
 
 - **Lender record.** A lender's own default rate and loan count, taken only from loans approved six or more years earlier, lowered the test AUC (boosted 0.637 against 0.653, scorecard 0.619 against 0.622). A lender's past does not carry over across regimes. It is in the code (`LENDER`) and not in the model.
-- **Term of the loan, interest rate:** excluded (section 4).
+- **Term of the loan:** excluded in both versions (section 4). **Interest rate:** excluded in version 1, included in version 2 after an audit (section 13). **Disbursement lag** (a field known only after approval) and **four-digit industry code** were tried and left out; the industry code lowered AUC.
 - The choice to drop the lender record, and the ablations in section 6, were made after the first full run; they are diagnostics, not tuned results.
 
 ## 11. Limits
@@ -135,15 +153,49 @@ charged-off dollars, not most of them. The SBA guarantee (median 75% of the loan
 - The label stops at 60 months. Later charge-offs count as survivors, and loans approved in 2020 and 2021 are mostly still active.
 - Test years include the 2020 to 2021 pandemic program changes. The 2021 vintage looks different (section 7) and is reported, not removed.
 - Charge-off is not economic loss. Dollars here are gross.
+- The interest-rate audit (section 13) finds no sign that the field is rewritten at charge-off, but it cannot prove it; if the SBA changed it after charge-off, the 0.025 gain from the rate would be partly leakage.
 - The model was built to be checked, not deployed: nothing here has been run on a live pipeline.
 
 ## 12. Monitoring if it were used
 
 Quarterly: AUC and KS on each matured vintage; population stability of the score (investigate above 0.10, redevelop above 0.25); actual against predicted
 default rate by decile, with the level shift refitted every year. Redevelop if AUC falls below 0.60 on a vintage of 30,000 or more
-loans, or if the ranking of the riskiest decile against the safest narrows below 3 to 1 (it is 7 to 1 now).
+loans, or if the ranking of the riskiest decile against the safest narrows below 3 to 1 (it is 7 to 1 for version 1 and 19 to 1 for version 2).
 
-## 13. Reproduce
+## 13. Version 2: yearly refit, added fields and audit
+
+- **Design.** For each approval year Y from 2016 to 2021, fit the boosted model on loans approved FY2010 to Y minus 6 and score Y. FY2010 is the first training year because the interest rate is reported from FY2009. The 2016 model has only FY2010 loans to learn from; the 2021 model has FY2010 to FY2015.
+- **Variants** (`results/refit_pooled.csv`, `results/refit_by_vintage.csv`):
+
+| Fields | Pooled AUC, FY2016 to FY2021 | KS |
+|---|---|---|
+| Version 1 fields, refit each year | 0.662 | 0.234 |
+| Plus lender or project outside the borrower's state | 0.667 | 0.239 |
+| Plus initial interest rate and variable-rate flag | 0.692 | 0.283 |
+
+  The 95% interval for the full model is 0.688 to 0.696, and for its gain over the version 1 fields 0.027 to 0.033. The place fields help in some years and hurt in 2016, so their 0.005 is small. The interest-rate gain shows in all six years.
+- **Calibration** (`results/refit_calibration.csv`): decile of predicted PD runs from 0.5% to 9.5%, actual from 0.4% to 8.5%. Mean PD 3.2% against 3.7%, with no shift. The model underpredicts the middle deciles.
+- **Dollars** (`results/refit_cutoffs.csv`), approving the lowest-risk share by count:
+
+| Approve | Share of approved dollars kept | Default rate | Defaults avoided | Gross charge-offs avoided | Unguaranteed charge-offs avoided |
+|---|---|---|---|---|---|
+| 100% | 100% | 3.7% | 0% | 0% | 0% |
+| 90% | 98% | 3.2% | 23% | 12% | 12% |
+| 80% | 95% | 2.8% | 40% | 23% | 23% |
+| 70% | 92% | 2.4% | 55% | 34% | 35% |
+| 60% | 87% | 2.1% | 67% | 44% | 46% |
+| 50% | 82% | 1.7% | 77% | 55% | 57% |
+
+  Unguaranteed charge-offs are gross charge-offs times one minus the loan's SBA-guaranteed share. They are an upper bound on a lender's loss, because recoveries are not in the file.
+- **Audit of the interest rate.** The term was caught because defaulted loans carried a rewritten, non-round value. The rate shows none of that: it is present for every loan (0% missing for defaulted and other loans), its precision is the same (0.2% of defaulted and 0.4% of other loans carry a third decimal), and defaulted variable-rate loans carry higher initial rates than others in the same year (8.2% against 7.4% for FY2018), the direction risk-based pricing predicts. Among defaulted loans, those charged off within 12 months of approval carry a higher rate (8.3%) than those charged off after 48 months (7.1%), which fits riskier loans failing sooner. None of this proves the field is untouched.
+
+## 14. Related work
+
+- Glennon and Nigro (2005), *Journal of Money, Credit and Banking* 37(5), 923-47, is the standard published study of SBA default risk, using a survival model on older loans.
+- Ahor (2025), an SSRN preprint (no. 7197485) by an independent researcher, ranks early default (charge-off within 18 months) on the same FOIA file and reports a test AUC of 0.975 for XGBoost, with loan term the dominant feature, and a term-only model that still ranks strongly. The paper does not test whether the term is rewritten at charge-off. In this file it is. Among loans approved from October 2021 to March 2024 (119,337 loans, 378 charged off within 18 months), 14% of the early defaults have a term in whole years against 86% of the other loans, and a boosted model trained on FY2010 to FY2019 using the term alone scores an AUC of 0.980 on them (`results/facts_refit.json`). That reproduces the preprint's headline number from the leaked field alone, so results that rest on the term should be read with that in mind. This is a replication of the design on a later file date, not a re-run of the paper's code.
+- Shumway (2001), *Journal of Business* 74(1), 101-24, and Campbell, Hilscher and Szilagyi (2008), *Journal of Finance* 63(6), 2899-2939, motivate out-of-time testing and market-based inputs in default models; this document applies the out-of-time logic to loans.
+
+## 15. Reproduce
 
 `python slim_sba.py` in the folder with the SBA downloads, copy the `SBA_*.csv.gz` files into `data/`, `python run_analysis.py data`
-(about 5 minutes), `pytest` (9 tests). Every number above is in `results/`.
+(about 5 minutes, version 1), `python run_refit.py data` (about 1 minute, version 2), `python check_doc.py`, `pytest` (tests in `tests/`). Every number above is in `results/`.

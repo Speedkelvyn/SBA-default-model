@@ -1,0 +1,34 @@
+{
+ "loans_modeled": 560588,
+ "size_only_auc": 0.6433177632426411,
+ "boot_C_auc_ci": [
+  0.6881801328738508,
+  0.6957559379979654
+ ],
+ "boot_gap_C_minus_A_ci": [
+  0.0269744202133267,
+  0.03301839694237823
+ ],
+ "decile_low_pred": 0.004637683688410696,
+ "decile_high_pred": 0.09493032491837791,
+ "decile_low_actual": 0.004484152597071712,
+ "decile_high_actual": 0.08519889934436253,
+ "gross_loss_$m": 1450.66523295,
+ "unguaranteed_loss_$m": 371.75850152352547,
+ "unguaranteed_share": 0.256267602669112,
+ "approved_$m": 139709.442343,
+ "rate_missing_defaulted": 0.0,
+ "rate_missing_other": 0.0,
+ "rate_mean_early_chargeoff": 8.330284697508898,
+ "rate_mean_late_chargeoff": 7.093073468713885,
+ "rate_mean_var_defaulted_2018": 8.204499054820417,
+ "rate_mean_var_other_2018": 7.40832577839972,
+ "rate_odd_precision_defaulted": 0.0016750418760469012,
+ "rate_odd_precision_other": 0.003913335915048,
+ "early_test_loans": 119337,
+ "early_test_defaults": 378,
+ "early_whole_year_defaulted": 0.13756613756613756,
+ "early_whole_year_other": 0.8580603401171832,
+ "early_term_only_auc": 0.9804917447214373,
+ "seconds": 60
+}

@@ -52,6 +52,12 @@ METHOD_GROUP = {
 NUMERIC = ["log_amount", "guarantee_share", "jobs_per_100k"]
 LENDER = ["lender_rate", "lender_log_loans"]  # tested as an addition and rejected (see MODEL_DOCUMENT.md)
 CATEGORICAL = ["sector", "business_type", "age_group", "method", "revolver", "collateral", "franchise", "state"]
+PLACE = [
+    "out_of_state",
+    "project_elsewhere",
+]  # version 2: lender outside the borrower's state; project outside the borrower's state
+PRICING = ["initial_rate", "variable_rate"]  # version 2: initial interest rate (reported from FY2009) and variable-rate flag
+REFIT_FIRST = 2010  # version 2 trains on FY2010 onward, because the rate fields exist only from FY2009
 
 
 # ------------------------------------------------------------------ data
@@ -322,6 +328,44 @@ def cutoff_table(d: pd.DataFrame, pd_hat, shares=(1.0, 0.9, 0.8, 0.7, 0.6, 0.5))
 def expected_loss(d: pd.DataFrame, pd_hat, lgd: float) -> float:
     """Sum of PD x LGD x exposure, in dollars."""
     return float((np.asarray(pd_hat, dtype=float) * lgd * d["GrossApproval"].to_numpy()).sum())
+
+
+def features_refit(d: pd.DataFrame, place: bool = True, pricing: bool = True) -> pd.DataFrame:
+    """Version 2 features: the version 1 set (without the lender record) plus place and pricing fields known at approval.
+
+    initial_rate is the interest rate at approval and variable_rate flags a variable-rate loan; neither shows the signs of
+    being rewritten at charge-off that the term does (see MODEL_DOCUMENT.md, section 4)."""
+    x = features(d).drop(columns=LENDER)
+    if place:
+        known = d["BankState"].notna() & d["BorrState"].notna()
+        x["out_of_state"] = np.where(known, (d["BankState"] != d["BorrState"]).astype(float), np.nan)
+        known = d["ProjectState"].notna() & d["BorrState"].notna()
+        x["project_elsewhere"] = np.where(known, (d["ProjectState"] != d["BorrState"]).astype(float), np.nan)
+    if pricing:
+        x["initial_rate"] = d["InitialInterestRate"].astype(float)
+        x["variable_rate"] = np.where(
+            d["FixedorVariableInterestInd"].notna(), (d["FixedorVariableInterestInd"] == "V").astype(float), np.nan
+        )
+    return x
+
+
+def refit_forecast(
+    d: pd.DataFrame, x: pd.DataFrame, test_years=range(2016, 2022), first: int = REFIT_FIRST, lag: int = LENDER_LAG
+) -> pd.DataFrame:
+    """Yearly refit. For each vintage Y, fit the boosted model on vintages `first`..Y-lag (every label known when Y's loans
+    were approved) and score Y. Returns one row per scored loan, index aligned with `d`, with its PD and vintage."""
+    parts = []
+    for y in test_years:
+        tr = (d["ApprovalFY"] >= first) & (d["ApprovalFY"] <= y - lag)
+        te = d["ApprovalFY"] == y
+        if tr.sum() < 1000 or te.sum() < 1000:
+            continue
+        m = boosted()
+        m.set_params(max_iter=300)
+        m.fit(boosted_frame(x[tr]), d.loc[tr, "default"])
+        p = m.predict_proba(boosted_frame(x[te], x[tr]))[:, 1]
+        parts.append(pd.DataFrame({"vintage": y, "pd": p}, index=d.index[te]))
+    return pd.concat(parts)
 
 
 # ------------------------------------------------------------------ walk-forward

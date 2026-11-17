@@ -97,6 +97,64 @@ has("psi range", f"{psi.min():.2f} to {psi.max():.2f}")
 has("psi 2021", f"{bv.psi_boosted_vs_train.iloc[-1]:.2f}")
 has("2021 mean pd", pct(bv.mean_pd_boosted.iloc[-1], 1))
 
+# ---- version 2 (yearly refit)
+with open("results/facts_refit.json") as fh2:
+    fr = json.load(fh2)
+rp = pd.read_csv("results/refit_pooled.csv").set_index("variant")
+rc = pd.read_csv("results/refit_cutoffs.csv").set_index("approve_share")
+rcal = pd.read_csv("results/refit_calibration.csv")
+rbv = pd.read_csv("results/refit_by_vintage.csv")
+C, A, B = "C_plus_place_and_rate", "A_same_fields", "B_plus_place"
+has("v2 loans", f"{int(rp.loc[C, 'loans']):,}")
+has("v2 defaults", f"{int(rp.loc[C, 'defaults']):,}")
+has("v2 AUC", f"{rp.loc[C, 'auc']:.3f}")
+has("v2 AUC A", f"{rp.loc[A, 'auc']:.3f}")
+has("v2 AUC B", f"{rp.loc[B, 'auc']:.3f}")
+has("v2 KS", f"{rp.loc[C, 'ks']:.3f}")
+has("v2 KS A", f"{rp.loc[A, 'ks']:.3f}")
+has("v2 KS B", f"{rp.loc[B, 'ks']:.3f}")
+has("v2 CI", f"{fr['boot_C_auc_ci'][0]:.3f} to {fr['boot_C_auc_ci'][1]:.3f}")
+has("v2 gap CI", f"{fr['boot_gap_C_minus_A_ci'][0]:.3f} to {fr['boot_gap_C_minus_A_ci'][1]:.3f}")
+has("v2 rate gain", f"{rp.loc[C, 'auc'] - rp.loc[B, 'auc']:.3f}")
+has("v2 place gain", f"{rp.loc[B, 'auc'] - rp.loc[A, 'auc']:.3f}")
+has("v2 size only", f"{fr['size_only_auc']:.3f}")
+has("v2 mean pd", pct(rp.loc[C, "mean_pd"], 1))
+has("v2 actual", pct(rp.loc[C, "actual"], 1))
+has("v2 brier", f"{rp.loc[C, 'brier']:.4f}")
+has("v2 brier const", f"{rp.loc[C, 'brier_constant']:.4f}")
+has("v2 top decile actual", pct(rcal.actual.iloc[-1], 1))
+has("v2 bottom decile actual", pct(rcal.actual.iloc[0], 2))
+has("v2 decile 6", f"{pct(rcal.predicted.iloc[5], 1)} predicted, {pct(rcal.actual.iloc[5], 1)} actual")
+has("v2 decile pred range", f"{pct(rcal.predicted.iloc[0], 1)} to {pct(rcal.predicted.iloc[-1], 1)}")
+has("v2 decile ratio", f"{rcal.actual.iloc[-1] / rcal.actual.iloc[0]:.0f} to 1")
+has("v2 approved $bn", f"${fr['approved_$m'] / 1000:.1f} billion")
+has("v2 unguaranteed", f"${fr['unguaranteed_loss_$m']:,.0f} million of ${fr['gross_loss_$m']:,.0f} million")
+has("v2 unguaranteed share", pct(fr["unguaranteed_share"]))
+has("v2 cut 0.8 defaults", pct(rc.loc[0.8, "defaults_avoided"]))
+has("v2 cut 0.8 gross", pct(rc.loc[0.8, "gross_loss_avoided"]))
+for s in (0.9, 0.8, 0.7, 0.6, 0.5):
+    r = rc.loc[s]
+    has(f"v2 cut {s} dollars", pct(r["share_of_dollars"]))
+    has(f"v2 cut {s} default rate", pct(r["default_rate"], 1))
+    has(f"v2 cut {s} avoided", pct(r["defaults_avoided"]))
+    has(f"v2 cut {s} gross", pct(r["gross_loss_avoided"]))
+    has(f"v2 cut {s} unguaranteed", pct(r["unguaranteed_loss_avoided"]))
+has("rate missing", pct(fr["rate_missing_defaulted"]))
+has("rate precision defaulted", pct(fr["rate_odd_precision_defaulted"], 1))
+has("rate precision other", pct(fr["rate_odd_precision_other"], 1))
+has("rate 2018 defaulted", f"{fr['rate_mean_var_defaulted_2018']:.1f}% against {fr['rate_mean_var_other_2018']:.1f}%")
+has(
+    "rate early late",
+    f"({fr['rate_mean_early_chargeoff']:.1f}%) than those charged off after 48 months ({fr['rate_mean_late_chargeoff']:.1f}%)",
+)
+has("early loans", f"{fr['early_test_loans']:,} loans, {fr['early_test_defaults']} charged off")
+has(
+    "early whole year",
+    f"{pct(fr['early_whole_year_defaulted'])} of the early defaults have a term in whole years "
+    f"against {pct(fr['early_whole_year_other'])}",
+)
+has("early term only auc", f"{fr['early_term_only_auc']:.3f}")
+
 bad = [c for c in checks if not c[1]]
 for lab, ok, text in checks:
     if not ok:
