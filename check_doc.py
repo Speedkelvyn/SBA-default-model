@@ -155,6 +155,25 @@ has(
 )
 has("early term only auc", f"{fr['early_term_only_auc']:.3f}")
 
+# ---- early-default audit
+with open("results/facts_early.json") as fh3:
+    fe = json.load(fh3)
+has("early audit test loans", f"{fe['test_loans']:,} test loans")
+has("early audit defaults", f"{fe['test_defaults']} charged off within 18 months")
+has("early audit train defaults", f"{fe['train_defaults']:,} early defaults")
+has(
+    "early audit auc no term",
+    f"{fe['auc_without_term']:.3f} (95% interval {fe['auc_without_term_ci'][0]:.3f} to {fe['auc_without_term_ci'][1]:.3f})",
+)
+has("early audit size alone", f"{fe['size_alone_auc']:.3f} and removing it costs {fe['size_drop']:.3f}")
+has("early audit other drop", f"at most {fe['max_other_drop']:.3f}")
+has("early audit medians", f"${fe['median_amount_early']:,.0f} in the test window against ${fe['median_amount_other']:,.0f}")
+has(
+    "early audit medians train",
+    f"(${fe['median_amount_early_train']:,.0f} against ${fe['median_amount_other_train']:,.0f} in training)",
+)
+has("early audit all-field auc", f"({fe['auc_all']:.3f})")
+
 bad = [c for c in checks if not c[1]]
 for lab, ok, text in checks:
     if not ok:

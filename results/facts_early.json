@@ -1,0 +1,18 @@
+{
+ "test_loans": 119337,
+ "test_defaults": 378,
+ "train_defaults": 1334,
+ "auc_all": 0.7702654077917824,
+ "auc_without_term": 0.8172553871324035,
+ "auc_without_term_ci": [
+  0.7978235605961385,
+  0.8343103212775395
+ ],
+ "median_amount_early": 50000.0,
+ "median_amount_other": 165600.0,
+ "median_amount_early_train": 25000.0,
+ "median_amount_other_train": 125000.0,
+ "size_alone_auc": 0.7745070652816178,
+ "size_drop": 0.04973056387619379,
+ "max_other_drop": 0.018782036903826738
+}

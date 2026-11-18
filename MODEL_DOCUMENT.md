@@ -188,6 +188,7 @@ loans, or if the ranking of the riskiest decile against the safest narrows below
 
   Unguaranteed charge-offs are gross charge-offs times one minus the loan's SBA-guaranteed share. They are an upper bound on a lender's loss, because recoveries are not in the file.
 - **Audit of the interest rate.** The term was caught because defaulted loans carried a rewritten, non-round value. The rate shows none of that: it is present for every loan (0% missing for defaulted and other loans), its precision is the same (0.2% of defaulted and 0.4% of other loans carry a third decimal), and defaulted variable-rate loans carry higher initial rates than others in the same year (8.2% against 7.4% for FY2018), the direction risk-based pricing predicts. Among defaulted loans, those charged off within 12 months of approval carry a higher rate (8.3%) than those charged off after 48 months (7.1%), which fits riskier loans failing sooner. None of this proves the field is untouched.
+- **Audit of the 18-month early-default design** (`run_early_audit.py`, `results/early_audit.csv`, `results/facts_early.json`). The same population as the replication in section 14: 119,337 test loans, 378 charged off within 18 months, trained on FY2010 to FY2019 (1,334 early defaults). Without the term, the boosted model scores an AUC of 0.817 (95% interval 0.798 to 0.834), against 0.980 with the term alone, so the term is the only field that carries a leaked signal. Loan size alone scores 0.775 and removing it costs 0.050; removing any other single field costs at most 0.019. Early defaults are small loans: a median of $50,000 in the test window against $165,600 for the rest ($25,000 against $125,000 in training). That is a real pattern in this file, not proof of one, because nothing here shows how the SBA records the amount at charge-off. Two cautions: 378 defaults is a small base, and a boosted model given the term and every other field scored lower (0.770) than the term alone, so the early design is noisy even before leaks. The five-year design in the rest of this document does not use it.
 
 ## 14. Related work
 
@@ -198,4 +199,4 @@ loans, or if the ranking of the riskiest decile against the safest narrows below
 ## 15. Reproduce
 
 `python slim_sba.py` in the folder with the SBA downloads, copy the `SBA_*.csv.gz` files into `data/`, `python run_analysis.py data`
-(about 5 minutes, version 1), `python run_refit.py data` (about 1 minute, version 2), `python check_doc.py`, `pytest` (tests in `tests/`). Every number above is in `results/`.
+(about 5 minutes, version 1), `python run_refit.py data` (about 1 minute, version 2), `python run_early_audit.py data` (about 2 minutes), `python check_doc.py`, `pytest` (tests in `tests/`). Every number above is in `results/`.

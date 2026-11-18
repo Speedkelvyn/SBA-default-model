@@ -13,6 +13,7 @@ for loan size alone), and the document records a leaked loan-term field that on 
 | `sba_pd.py` | Label, features, scorecard, boosted model, metrics, dollar tables |
 | `run_analysis.py` | Version 1 (one model frozen at 2009): reproduces its numbers into `results/` |
 | `run_refit.py` | Version 2 (yearly refit), the interest-rate audit and the term-leak replication, into `results/refit_*.csv` |
+| `run_early_audit.py` | Audit of the 18-month early-default design for other leaked fields, into `results/early_audit.csv` |
 | `check_doc.py` | Checks that every figure quoted in the document matches `results/` |
 | `slim_sba.py` | Run once on the SBA download folder; keeps the columns the model needs and drops borrower names and addresses |
 | `tests/` | Hand-computed checks of the label, the lender record, the metrics and the dollar table |
@@ -20,4 +21,4 @@ for loan size alone), and the document records a leaked loan-term field that on 
 
 Data: SBA "7(a) & 504 FOIA" files (data.sba.gov/dataset/7a-504-foia), as of 2026-09-30. Not included here; the files
 are large. Run `python slim_sba.py` in the folder holding the `FOIA_7a_*` downloads, copy the `SBA_*.csv.gz` files into
-`data/`, then `python run_analysis.py data` (about 5 minutes) and `python run_refit.py data` (about 1 minute). `python check_doc.py` and `pytest` check the document and the code.
+`data/`, then `python run_analysis.py data` (about 5 minutes) and `python run_refit.py data` (about 1 minute), and `python run_early_audit.py data` (about 2 minutes). `python check_doc.py` and `pytest` check the document and the code.
